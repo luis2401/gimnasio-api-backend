@@ -1,21 +1,14 @@
 package com.example.demo.config;
 
-import com.example.demo.entity.EmpleadoEntity;
-import com.example.demo.entity.RolEntity;
-import com.example.demo.entity.SedeEntity;
-import com.example.demo.entity.SocioEntity;
-import com.example.demo.entity.UsuarioEntity;
-import com.example.demo.repository.EmpleadoRepository;
-import com.example.demo.repository.RolRepository;
-import com.example.demo.repository.SedeRepository;
-import com.example.demo.repository.SocioRepository;
-import com.example.demo.repository.UsuarioRepository;
+import com.example.demo.entity.*;
+import com.example.demo.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.Date;
 
 @Component
@@ -34,6 +27,12 @@ public class DataInitializer implements CommandLineRunner {
     private SedeRepository sedeRepository;
 
     @Autowired
+    private PlanMembresiaRepository planMembresiaRepository;
+
+    @Autowired
+    private PlanSedeRepository planSedeRepository;
+
+    @Autowired
     private SocioRepository socioRepository;
 
     @Autowired
@@ -42,19 +41,90 @@ public class DataInitializer implements CommandLineRunner {
     @Override
     @Transactional
     public void run(String... args) {
-        if (sedeRepository.count() == 0) {
-            sedeRepository.save(SedeEntity.builder()
-                    .codigo("SEDE-CENTRAL")
-                    .nombre("Sede Central")
-                    .direccion("Av. Universitaria 1801, Lima")
-                    .activa(true)
+        SedeEntity sedeCentral = sedeRepository.findByCodigo("SEDE-CENTRAL")
+                .orElseGet(() -> sedeRepository.save(SedeEntity.builder()
+                        .codigo("SEDE-CENTRAL")
+                        .nombre("Sede Central")
+                        .direccion("Av. Universitaria 1801, Lima")
+                        .activa(true)
+                        .build()));
+
+        SedeEntity sedeSur = sedeRepository.findByCodigo("SEDE-SUR")
+                .orElseGet(() -> sedeRepository.save(SedeEntity.builder()
+                        .codigo("SEDE-SUR")
+                        .nombre("Sede Sur")
+                        .direccion("Av. Primavera 450, Santiago de Surco")
+                        .activa(true)
+                        .build()));
+
+        if (planMembresiaRepository.count() == 0) {
+            PlanMembresiaEntity planMensual = planMembresiaRepository.save(PlanMembresiaEntity.builder()
+                    .nombre("Plan Mensual Classic")
+                    .duracionDias(30)
+                    .activo(true)
+                    .condiciones("Acceso a máquinas y área cardiovascular.")
                     .build());
 
-            sedeRepository.save(SedeEntity.builder()
-                    .codigo("SEDE-SUR")
-                    .nombre("Sede Sur")
-                    .direccion("Av. Primavera 450, Santiago de Surco")
-                    .activa(true)
+            PlanMembresiaEntity planTrimestral = planMembresiaRepository.save(PlanMembresiaEntity.builder()
+                    .nombre("Plan Trimestral Pro")
+                    .duracionDias(90)
+                    .activo(true)
+                    .condiciones("Acceso a todas las máquinas, cardio y 1 asesoría mensual.")
+                    .build());
+
+            PlanMembresiaEntity planAnual = planMembresiaRepository.save(PlanMembresiaEntity.builder()
+                    .nombre("Plan Anual Black VIP")
+                    .duracionDias(365)
+                    .activo(true)
+                    .condiciones("Acceso total ilimitado, clases grupales y acceso multisede.")
+                    .build());
+
+            planSedeRepository.save(PlanSedeEntity.builder()
+                    .plan(planMensual)
+                    .sede(sedeCentral)
+                    .precioActual(new BigDecimal("120.00"))
+                    .recargoMultisede(new BigDecimal("20.00"))
+                    .activo(true)
+                    .build());
+
+            planSedeRepository.save(PlanSedeEntity.builder()
+                    .plan(planMensual)
+                    .sede(sedeSur)
+                    .precioActual(new BigDecimal("130.00"))
+                    .recargoMultisede(new BigDecimal("20.00"))
+                    .activo(true)
+                    .build());
+
+            planSedeRepository.save(PlanSedeEntity.builder()
+                    .plan(planTrimestral)
+                    .sede(sedeCentral)
+                    .precioActual(new BigDecimal("320.00"))
+                    .recargoMultisede(new BigDecimal("30.00"))
+                    .activo(true)
+                    .build());
+
+            planSedeRepository.save(PlanSedeEntity.builder()
+                    .plan(planTrimestral)
+                    .sede(sedeSur)
+                    .precioActual(new BigDecimal("350.00"))
+                    .recargoMultisede(new BigDecimal("30.00"))
+                    .activo(true)
+                    .build());
+
+            planSedeRepository.save(PlanSedeEntity.builder()
+                    .plan(planAnual)
+                    .sede(sedeCentral)
+                    .precioActual(new BigDecimal("1100.00"))
+                    .recargoMultisede(BigDecimal.ZERO)
+                    .activo(true)
+                    .build());
+
+            planSedeRepository.save(PlanSedeEntity.builder()
+                    .plan(planAnual)
+                    .sede(sedeSur)
+                    .precioActual(new BigDecimal("1200.00"))
+                    .recargoMultisede(BigDecimal.ZERO)
+                    .activo(true)
                     .build());
         }
 
