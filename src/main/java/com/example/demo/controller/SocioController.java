@@ -1,6 +1,5 @@
 package com.example.demo.controller;
 
-import com.example.demo.Model.SocioMapping;
 import com.example.demo.Model.SocioModel;
 import com.example.demo.dto.CambiarEstadoRequest;
 import com.example.demo.dto.CreateSocioRequest;
@@ -21,9 +20,6 @@ public class SocioController {
 
     @Autowired
     private SocioService socioService;
-
-    @Autowired
-    private SocioMapping socioMapping;
 
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
@@ -52,7 +48,7 @@ public class SocioController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public SocioModel crearSocio(@Valid @RequestBody CreateSocioRequest createSocioRequest) {
-        return socioService.crearSocio(socioMapping.convert(createSocioRequest));
+        return socioService.crearSocio(createSocioRequest);
     }
 
     @PutMapping("/{id}")
@@ -64,7 +60,7 @@ public class SocioController {
     @PatchMapping("/{id}/estado")
     @ResponseStatus(HttpStatus.OK)
     public SocioModel cambiarEstado(@Valid @RequestBody CambiarEstadoRequest request, @PathVariable Long id) {
-        return socioService.cambiarEstado(id, request.getActivo());
+        return socioService.cambiarEstado(id, request);
     }
 
     @DeleteMapping("/{id}")

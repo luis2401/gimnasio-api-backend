@@ -2,6 +2,8 @@ package com.example.demo.service;
 
 import com.example.demo.Model.SocioMapping;
 import com.example.demo.Model.SocioModel;
+import com.example.demo.dto.CambiarEstadoRequest;
+import com.example.demo.dto.CreateSocioRequest;
 import com.example.demo.dto.ReporteSocio;
 import com.example.demo.dto.UpdateSocioRequest;
 import com.example.demo.entity.RolUsuario;
@@ -45,6 +47,17 @@ public class SocioService {
             return socioRepository.count();
         }
         return socioRepository.countByUsuarioId(usuario.getId());
+    }
+
+    @Transactional
+    public SocioModel crearSocio(CreateSocioRequest request) {
+        validarUnicidadDni(request.getDni(), null);
+        validarUnicidadCorreo(request.getCorreo(), null);
+
+        SocioEntity socio = mapper.convert(request);
+        socio.setUsuario(usuarioActual());
+        socio.setFechaCreacion(new Date());
+        return mapper.convert(socioRepository.saveAndFlush(socio));
     }
 
     @Transactional
@@ -93,6 +106,11 @@ public class SocioService {
         verificarPertenencia(socio);
         socio.setActivo(activo);
         return mapper.convert(socioRepository.saveAndFlush(socio));
+    }
+
+    @Transactional
+    public SocioModel cambiarEstado(Long id, CambiarEstadoRequest request) {
+        return cambiarEstado(id, Boolean.TRUE.equals(request.getActivo()));
     }
 
     @Transactional(readOnly = true)
@@ -153,6 +171,13 @@ public class SocioService {
     }
 
     private boolean esAdministrador(UsuarioEntity usuario) {
-        return usuario.getRol() == RolUsuario.ADMIN;
+        if (usuario == null) {
+            return false;
+        }
+        String rol = usuario.getRolCodigo();
+        return "ADMINISTRADOR".equalsIgnoreCase(rol)
+                || "ADMIN".equalsIgnoreCase(rol)
+                || usuario.getRol() == RolUsuario.ADMINISTRADOR
+                || usuario.getRol() == RolUsuario.ADMIN;
     }
 }

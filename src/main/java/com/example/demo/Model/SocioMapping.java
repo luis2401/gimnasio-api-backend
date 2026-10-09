@@ -5,22 +5,22 @@ import com.example.demo.dto.UpdateSocioRequest;
 import com.example.demo.entity.SocioEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 
 import java.util.List;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface SocioMapping {
 
     SocioModel convert(SocioEntity entidad);
 
     SocioEntity convert(SocioModel modelo);
 
+    SocioEntity convert(CreateSocioRequest createSocioRequest);
+
     List<SocioModel> convert(List<SocioEntity> listaSocioEntidad);
 
-    SocioEntity copy(@MappingTarget SocioEntity oldSocio, SocioModel model);
-
-    SocioModel convert(CreateSocioRequest createSocioRequest);
+    void copy(@MappingTarget SocioEntity oldSocio, UpdateSocioRequest request);
 
     SocioModel convert(UpdateSocioRequest updateSocioRequest);
-
 }

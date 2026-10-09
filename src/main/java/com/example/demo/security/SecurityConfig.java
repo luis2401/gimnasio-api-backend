@@ -41,10 +41,15 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/registrar").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.DELETE, "/gimnasio", "/gimnasio/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/gimnasio/reporte", "/gimnasio/reporte/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/auth/registrar").hasAnyRole("ADMIN", "ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.DELETE, "/gimnasio", "/gimnasio/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.GET, "/gimnasio/reporte", "/gimnasio/reporte/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
                         .requestMatchers("/gimnasio", "/gimnasio/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/sedes", "/sedes/**").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/sedes", "/sedes/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PUT, "/sedes", "/sedes/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PATCH, "/sedes", "/sedes/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.DELETE, "/sedes", "/sedes/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
                         .requestMatchers( "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
