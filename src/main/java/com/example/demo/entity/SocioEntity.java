@@ -34,6 +34,8 @@ public class SocioEntity {
     @Email
     private String correo;
 
+    @Column(name = "creado_en")
+    @Temporal(TemporalType.TIMESTAMP)
     private Date fechaCreacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
