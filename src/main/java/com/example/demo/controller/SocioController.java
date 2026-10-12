@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@CrossOrigin("http://localhost:3000/")
+@CrossOrigin("http://localhost:3000/","https://project-kjd7c.vercel.app")
 @RestController
 @RequestMapping("/gimnasio")
 public class SocioController {
