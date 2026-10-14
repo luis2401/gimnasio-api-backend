@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-@CrossOrigin("http://localhost:3000/", "https://yanfitness.vercel.app")
+@CrossOrigin(origins = {"http://localhost:3000", "https://yanfitness.vercel.app"})
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
