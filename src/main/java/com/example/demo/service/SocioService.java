@@ -33,20 +33,12 @@ public class SocioService {
 
     @Transactional(readOnly = true)
     public List<SocioModel> buscarSocios() {
-        UsuarioEntity usuario = usuarioActual();
-        if (esAdministrador(usuario)) {
-            return mapper.convert(socioRepository.findAll());
-        }
-        return mapper.convert(socioRepository.findByUsuarioId(usuario.getId()));
+        return mapper.convert(socioRepository.findAll());
     }
 
     @Transactional(readOnly = true)
     public long cantidadSocios() {
-        UsuarioEntity usuario = usuarioActual();
-        if (esAdministrador(usuario)) {
-            return socioRepository.count();
-        }
-        return socioRepository.countByUsuarioId(usuario.getId());
+        return socioRepository.count();
     }
 
     @Transactional
@@ -74,14 +66,12 @@ public class SocioService {
     @Transactional(readOnly = true)
     public SocioModel buscarSocioPorId(Long id) {
         SocioEntity socio = obtenerSocio(id);
-        verificarPertenencia(socio);
         return mapper.convert(socio);
     }
 
     @Transactional
     public SocioModel updateSocio(Long id, UpdateSocioRequest request) {
         SocioEntity socio = obtenerSocio(id);
-        verificarPertenencia(socio);
 
         if (request.getCorreo() != null) {
             validarUnicidadCorreo(request.getCorreo(), id);
@@ -96,14 +86,12 @@ public class SocioService {
     @Transactional
     public void eliminarSocio(Long id) {
         SocioEntity socio = obtenerSocio(id);
-        verificarPertenencia(socio);
         socioRepository.delete(socio);
     }
 
     @Transactional
     public SocioModel cambiarEstado(Long id, boolean activo) {
         SocioEntity socio = obtenerSocio(id);
-        verificarPertenencia(socio);
         socio.setActivo(activo);
         return mapper.convert(socioRepository.saveAndFlush(socio));
     }
@@ -130,16 +118,6 @@ public class SocioService {
     private SocioEntity obtenerSocio(Long id) {
         return socioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Socio no encontrado con id: " + id));
-    }
-
-    private void verificarPertenencia(SocioEntity socio) {
-        UsuarioEntity usuario = usuarioActual();
-        if (esAdministrador(usuario)) {
-            return;
-        }
-        if (socio.getUsuario() == null || !socio.getUsuario().getId().equals(usuario.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tiene permisos para acceder a este socio");
-        }
     }
 
     private void validarUnicidadDni(String dni, Long idActual) {
