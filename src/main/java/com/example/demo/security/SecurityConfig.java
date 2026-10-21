@@ -59,6 +59,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/planes", "/planes/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PATCH, "/planes", "/planes/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
                         .requestMatchers(HttpMethod.DELETE, "/planes", "/planes/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PATCH, "/pagos/*/anular").hasAnyRole("ADMIN", "ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.GET, "/pagos/reporte").hasAnyRole("ADMIN", "ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.PATCH, "/suscripciones/*/estado").hasAnyRole("ADMIN", "ADMINISTRADOR")
+                        .requestMatchers("/pagos", "/pagos/**", "/suscripciones", "/suscripciones/**").authenticated()
                         .requestMatchers( "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
