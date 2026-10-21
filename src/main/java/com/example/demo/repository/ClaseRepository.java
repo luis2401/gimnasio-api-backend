@@ -15,5 +15,7 @@ public interface ClaseRepository extends JpaRepository<ClaseEntity, Integer> {
 
     List<ClaseEntity> findByActivo(boolean activo);
 
+    long countByActivo(boolean activo);
+
     List<ClaseEntity> findByInstructorIdAndDiaSemanaAndActivo(Integer instructorId, Short diaSemana, boolean activo);
 }

@@ -29,6 +29,12 @@ public class SuscripcionController {
         return suscripcionService.buscarSuscripciones(socioId, estado);
     }
 
+    @GetMapping("/por-vencer")
+    @ResponseStatus(HttpStatus.OK)
+    public List<SuscripcionModel> obtenerPorVencer(@RequestParam(defaultValue = "7") int dias) {
+        return suscripcionService.buscarPorVencer(dias);
+    }
+
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public SuscripcionModel obtenerPorId(@PathVariable Integer id) {

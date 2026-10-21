@@ -17,5 +17,7 @@ public interface EmpleadoRepository extends JpaRepository<EmpleadoEntity, Intege
 
     List<EmpleadoEntity> findByActivo(boolean activo);
 
+    long countByActivo(boolean activo);
+
     List<EmpleadoEntity> findByRolCodigoAndActivo(String rolCodigo, boolean activo);
 }

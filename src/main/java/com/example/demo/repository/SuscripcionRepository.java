@@ -19,6 +19,11 @@ public interface SuscripcionRepository extends JpaRepository<SuscripcionEntity, 
 
     List<SuscripcionEntity> findByEstado(EstadoSuscripcion estado);
 
+    long countByEstado(EstadoSuscripcion estado);
+
+    List<SuscripcionEntity> findByEstadoAndFechaFinBetweenOrderByFechaFinAsc(
+            EstadoSuscripcion estado, LocalDate desde, LocalDate hasta);
+
     boolean existsBySocioIdAndEstadoAndFechaFinGreaterThanEqual(Long socioId, EstadoSuscripcion estado, LocalDate fecha);
 
     Optional<SuscripcionEntity> findFirstBySocioIdAndEstadoAndFechaFinGreaterThanEqualOrderByFechaFinDesc(

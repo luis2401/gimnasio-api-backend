@@ -64,6 +64,17 @@ public class SuscripcionService {
     }
 
     @Transactional
+    public List<SuscripcionModel> buscarPorVencer(int dias) {
+        if (dias < 1 || dias > 365) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Los días deben estar entre 1 y 365");
+        }
+        LocalDate hoy = LocalDate.now();
+        suscripcionRepository.marcarVencidas(hoy);
+        return mapper.convertSuscripciones(suscripcionRepository
+                .findByEstadoAndFechaFinBetweenOrderByFechaFinAsc(EstadoSuscripcion.ACTIVA, hoy, hoy.plusDays(dias)));
+    }
+
+    @Transactional
     public SuscripcionModel obtenerVigenteDeSocio(Long socioId) {
         suscripcionRepository.marcarVencidas(LocalDate.now());
         return suscripcionRepository
