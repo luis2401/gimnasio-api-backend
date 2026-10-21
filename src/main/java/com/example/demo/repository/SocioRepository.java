@@ -25,4 +25,8 @@ public interface SocioRepository extends JpaRepository<SocioEntity, Long> {
     long countByActivo(boolean activo);
 
     long countByFechaCreacionAfter(Date fecha);
+
+    org.springframework.data.domain.Page<SocioEntity>
+    findByDniContainingIgnoreCaseOrNombreContainingIgnoreCaseOrApellidoContainingIgnoreCase(
+            String dni, String nombre, String apellido, org.springframework.data.domain.Pageable pageable);
 }

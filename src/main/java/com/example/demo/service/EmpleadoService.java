@@ -37,6 +37,17 @@ public class EmpleadoService {
     }
 
     @Transactional(readOnly = true)
+    public com.example.demo.Model.PaginaModel<EmpleadoModel> buscarPagina(Boolean soloActivos, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = Paginacion.de(page, size,
+                org.springframework.data.domain.Sort.by("apellido").ascending().and(
+                        org.springframework.data.domain.Sort.by("nombre").ascending()));
+        org.springframework.data.domain.Page<EmpleadoEntity> pagina = Boolean.TRUE.equals(soloActivos)
+                ? empleadoRepository.findByActivo(true, pageable)
+                : empleadoRepository.findAll(pageable);
+        return com.example.demo.Model.PaginaModel.from(pagina.map(e -> mapper.convert(e)));
+    }
+
+    @Transactional(readOnly = true)
     public List<EmpleadoModel> buscarInstructores() {
         return mapper.convert(empleadoRepository.findByRolCodigoAndActivo("INSTRUCTOR", true));
     }

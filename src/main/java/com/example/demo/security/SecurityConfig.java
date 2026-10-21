@@ -71,6 +71,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/clases", "/clases/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
                         .requestMatchers("/inscripciones", "/inscripciones/**", "/asistencias", "/asistencias/**").authenticated()
                         .requestMatchers("/asignaciones", "/asignaciones/**", "/dashboard").hasAnyRole("ADMIN", "ADMINISTRADOR")
+                        .requestMatchers("/usuarios", "/usuarios/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
                         .requestMatchers( "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",

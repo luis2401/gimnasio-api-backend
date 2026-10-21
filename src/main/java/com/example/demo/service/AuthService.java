@@ -41,20 +41,65 @@ public class AuthService {
     @Autowired
     private JwtService jwtService;
 
-    @Transactional(readOnly = true)
+    @Autowired
+    private SesionService sesionService;
+
+    private static final int MAX_INTENTOS = 5;
+    private static final int[] MINUTOS_BLOQUEO = {5, 15, 60};
+
+    /** noRollbackFor: el contador de intentos fallidos debe persistirse aunque se lance 401. */
+    @Transactional(noRollbackFor = ResponseStatusException.class)
     public LoginResponse login(LoginRequest request) {
-        UsuarioEntity usuario;
-        try {
-            usuario = userDetailsService.obtenerPorUsername(request.getUsername());
-        } catch (UsernameNotFoundException ex) {
+        UsuarioEntity usuario = usuarioRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas"));
+
+        if (!usuario.isEnabled()) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas");
         }
 
-        if (!usuario.isEnabled() || !passwordEncoder.matches(request.getPassword(), usuario.getPassword())) {
+        if (!usuario.isAccountNonLocked()) {
+            throw new ResponseStatusException(HttpStatus.LOCKED,
+                    "Cuenta bloqueada temporalmente por intentos fallidos. Intente más tarde");
+        }
+
+        if (!passwordEncoder.matches(request.getPassword(), usuario.getPassword())) {
+            registrarIntentoFallido(usuario);
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Credenciales inválidas");
         }
 
+        usuario.setIntentosFallidos(0);
+        usuario.setNivelBloqueo(0);
+        usuario.setBloqueadoHasta(null);
+        usuario.setUltimoAcceso(new Date());
+
+        return emitirSesion(usuario);
+    }
+
+    @Transactional
+    public void logout(String token) {
+        sesionService.revocar(token);
+    }
+
+    @Transactional
+    public int logoutTodas(UsuarioEntity usuario) {
+        return sesionService.revocarTodas(usuario.getId());
+    }
+
+    private void registrarIntentoFallido(UsuarioEntity usuario) {
+        int intentos = (usuario.getIntentosFallidos() == null ? 0 : usuario.getIntentosFallidos()) + 1;
+        if (intentos >= MAX_INTENTOS) {
+            int nivel = Math.min((usuario.getNivelBloqueo() == null ? 0 : usuario.getNivelBloqueo()) + 1, 3);
+            usuario.setNivelBloqueo(nivel);
+            usuario.setBloqueadoHasta(new Date(System.currentTimeMillis()
+                    + MINUTOS_BLOQUEO[nivel - 1] * 60_000L));
+            intentos = 0;
+        }
+        usuario.setIntentosFallidos(intentos);
+    }
+
+    private LoginResponse emitirSesion(UsuarioEntity usuario) {
         String token = jwtService.generarToken(usuario);
+        sesionService.registrar(usuario, token, jwtService.extraerExpiracion(token));
         return LoginResponse.builder()
                 .token(token)
                 .username(usuario.getUsername())
@@ -101,13 +146,8 @@ public class AuthService {
                 .activo(true)
                 .fechaCreacion(new Date())
                 .build();
-        usuarioRepository.save(usuario);
+        usuario = usuarioRepository.save(usuario);
 
-        String token = jwtService.generarToken(usuario);
-        return LoginResponse.builder()
-                .token(token)
-                .username(usuario.getUsername())
-                .rol(usuario.getRolCodigo())
-                .build();
+        return emitirSesion(usuario);
     }
 }

@@ -29,6 +29,15 @@ public class SuscripcionController {
         return suscripcionService.buscarSuscripciones(socioId, estado);
     }
 
+    @GetMapping("/pagina")
+    @ResponseStatus(HttpStatus.OK)
+    public com.example.demo.Model.PaginaModel<SuscripcionModel> obtenerPagina(
+            @RequestParam(required = false) EstadoSuscripcion estado,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return suscripcionService.buscarPagina(estado, page, size);
+    }
+
     @GetMapping("/por-vencer")
     @ResponseStatus(HttpStatus.OK)
     public List<SuscripcionModel> obtenerPorVencer(@RequestParam(defaultValue = "7") int dias) {

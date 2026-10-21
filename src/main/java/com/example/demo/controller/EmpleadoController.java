@@ -26,6 +26,15 @@ public class EmpleadoController {
         return empleadoService.buscarEmpleados(soloActivos);
     }
 
+    @GetMapping("/pagina")
+    @ResponseStatus(HttpStatus.OK)
+    public com.example.demo.Model.PaginaModel<EmpleadoModel> obtenerPagina(
+            @RequestParam(required = false) Boolean soloActivos,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return empleadoService.buscarPagina(soloActivos, page, size);
+    }
+
     @GetMapping("/instructores")
     @ResponseStatus(HttpStatus.OK)
     public List<EmpleadoModel> obtenerInstructores() {

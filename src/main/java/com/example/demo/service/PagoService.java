@@ -47,6 +47,16 @@ public class PagoService {
     }
 
     @Transactional(readOnly = true)
+    public com.example.demo.Model.PaginaModel<PagoModel> buscarPagina(Integer sedeId, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = Paginacion.de(page, size,
+                org.springframework.data.domain.Sort.by("fechaPago").descending());
+        org.springframework.data.domain.Page<PagoEntity> pagina = sedeId != null
+                ? pagoRepository.findBySedeId(sedeId, pageable)
+                : pagoRepository.findAll(pageable);
+        return com.example.demo.Model.PaginaModel.from(pagina.map(e -> mapper.convert(e)));
+    }
+
+    @Transactional(readOnly = true)
     public PagoModel buscarPorId(Integer id) {
         return mapper.convert(obtener(id));
     }

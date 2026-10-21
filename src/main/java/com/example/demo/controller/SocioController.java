@@ -27,6 +27,15 @@ public class SocioController {
         return socioService.buscarSocios();
     }
 
+    @GetMapping("/pagina")
+    @ResponseStatus(HttpStatus.OK)
+    public com.example.demo.Model.PaginaModel<SocioModel> obtenerSociosPagina(
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return socioService.buscarSociosPagina(q, page, size);
+    }
+
     @GetMapping("/cantidad")
     @ResponseStatus(HttpStatus.OK)
     public long obtenerCantidadSocios() {

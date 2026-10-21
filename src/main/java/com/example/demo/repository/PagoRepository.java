@@ -15,6 +15,9 @@ public interface PagoRepository extends JpaRepository<PagoEntity, Integer> {
 
     List<PagoEntity> findBySedeIdOrderByFechaPagoDesc(Integer sedeId);
 
+    org.springframework.data.domain.Page<PagoEntity> findBySedeId(
+            Integer sedeId, org.springframework.data.domain.Pageable pageable);
+
     List<PagoEntity> findByFechaPagoBetweenAndEstado(Instant desde, Instant hasta, EstadoPago estado);
 
     List<PagoEntity> findBySedeIdAndFechaPagoBetweenAndEstado(Integer sedeId, Instant desde, Instant hasta, EstadoPago estado);

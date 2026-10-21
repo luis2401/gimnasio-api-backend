@@ -19,6 +19,9 @@ public interface SuscripcionRepository extends JpaRepository<SuscripcionEntity, 
 
     List<SuscripcionEntity> findByEstado(EstadoSuscripcion estado);
 
+    org.springframework.data.domain.Page<SuscripcionEntity> findByEstado(
+            EstadoSuscripcion estado, org.springframework.data.domain.Pageable pageable);
+
     long countByEstado(EstadoSuscripcion estado);
 
     List<SuscripcionEntity> findByEstadoAndFechaFinBetweenOrderByFechaFinAsc(

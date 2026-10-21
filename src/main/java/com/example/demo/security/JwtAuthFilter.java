@@ -2,6 +2,7 @@ package com.example.demo.security;
 
 import com.example.demo.entity.UsuarioEntity;
 import com.example.demo.service.CustomUserDetailsService;
+import com.example.demo.service.SesionService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,10 +23,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
+    private final SesionService sesionService;
 
-    public JwtAuthFilter(JwtService jwtService, CustomUserDetailsService userDetailsService) {
+    public JwtAuthFilter(JwtService jwtService, CustomUserDetailsService userDetailsService,
+                         SesionService sesionService) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+        this.sesionService = sesionService;
     }
 
     @Override
@@ -41,7 +45,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     String username = jwtService.extraerUsername(token);
                     if (username != null
                             && SecurityContextHolder.getContext().getAuthentication() == null
-                            && jwtService.esValido(token)) {
+                            && jwtService.esValido(token)
+                            && sesionVigente(token)) {
                         UsuarioEntity usuario = (UsuarioEntity) userDetailsService.loadUserByUsername(username);
                         UsernamePasswordAuthenticationToken autenticacion =
                                 new UsernamePasswordAuthenticationToken(usuario, null, usuario.getAuthorities());
@@ -57,6 +62,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /** Tokens con jti deben tener una sesión activa; los anteriores (sin jti) se siguen aceptando. */
+    private boolean sesionVigente(String token) {
+        return jwtService.extraerJti(token) == null || sesionService.esSesionActiva(token);
     }
 
     private String extraerToken(String header) {

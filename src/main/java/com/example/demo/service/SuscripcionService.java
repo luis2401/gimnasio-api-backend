@@ -58,6 +58,17 @@ public class SuscripcionService {
     }
 
     @Transactional
+    public com.example.demo.Model.PaginaModel<SuscripcionModel> buscarPagina(EstadoSuscripcion estado, int page, int size) {
+        suscripcionRepository.marcarVencidas(LocalDate.now());
+        org.springframework.data.domain.Pageable pageable = Paginacion.de(page, size,
+                org.springframework.data.domain.Sort.by("id").descending());
+        org.springframework.data.domain.Page<SuscripcionEntity> pagina = estado != null
+                ? suscripcionRepository.findByEstado(estado, pageable)
+                : suscripcionRepository.findAll(pageable);
+        return com.example.demo.Model.PaginaModel.from(pagina.map(e -> mapper.convert(e)));
+    }
+
+    @Transactional
     public SuscripcionModel buscarPorId(Integer id) {
         suscripcionRepository.marcarVencidas(LocalDate.now());
         return mapper.convert(obtener(id));

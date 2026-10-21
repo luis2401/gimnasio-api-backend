@@ -37,6 +37,17 @@ public class SocioService {
     }
 
     @Transactional(readOnly = true)
+    public com.example.demo.Model.PaginaModel<SocioModel> buscarSociosPagina(String q, int page, int size) {
+        org.springframework.data.domain.Pageable pageable = Paginacion.de(page, size,
+                org.springframework.data.domain.Sort.by("id").descending());
+        org.springframework.data.domain.Page<SocioEntity> pagina = q != null && !q.isBlank()
+                ? socioRepository.findByDniContainingIgnoreCaseOrNombreContainingIgnoreCaseOrApellidoContainingIgnoreCase(
+                        q.trim(), q.trim(), q.trim(), pageable)
+                : socioRepository.findAll(pageable);
+        return com.example.demo.Model.PaginaModel.from(pagina.map(e -> mapper.convert(e)));
+    }
+
+    @Transactional(readOnly = true)
     public long cantidadSocios() {
         return socioRepository.count();
     }

@@ -28,6 +28,15 @@ public class PagoController {
         return pagoService.buscarPagos(sedeId);
     }
 
+    @GetMapping("/pagina")
+    @ResponseStatus(HttpStatus.OK)
+    public com.example.demo.Model.PaginaModel<PagoModel> obtenerPagina(
+            @RequestParam(required = false) Integer sedeId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return pagoService.buscarPagina(sedeId, page, size);
+    }
+
     @GetMapping("/reporte")
     @ResponseStatus(HttpStatus.OK)
     public ReporteIngresos obtenerReporte(

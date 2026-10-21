@@ -17,6 +17,9 @@ public interface EmpleadoRepository extends JpaRepository<EmpleadoEntity, Intege
 
     List<EmpleadoEntity> findByActivo(boolean activo);
 
+    org.springframework.data.domain.Page<EmpleadoEntity> findByActivo(
+            boolean activo, org.springframework.data.domain.Pageable pageable);
+
     long countByActivo(boolean activo);
 
     List<EmpleadoEntity> findByRolCodigoAndActivo(String rolCodigo, boolean activo);
