@@ -11,7 +11,6 @@ import com.example.demo.entity.UsuarioEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-@CrossOrigin(origins = {"http://localhost:3000", "https://yanfitness.vercel.app"})
 @RestController
 @RequestMapping("/auth")
 public class AuthController {

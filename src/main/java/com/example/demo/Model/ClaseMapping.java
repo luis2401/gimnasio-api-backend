@@ -19,9 +19,12 @@ public interface ClaseMapping {
     ClaseModel convert(ClaseEntity entidad);
 
     @Mapping(target = "socioId", source = "socio.id")
+    @Mapping(target = "socioDni", source = "socio.dni")
     @Mapping(target = "socioNombre", expression = "java(entidad.getSocio().getNombre() + \" \" + (entidad.getSocio().getApellido() == null ? \"\" : entidad.getSocio().getApellido()))")
     @Mapping(target = "claseId", source = "clase.id")
     @Mapping(target = "claseNombre", source = "clase.nombre")
+    @Mapping(target = "sedeId", source = "clase.sede.id")
+    @Mapping(target = "sedeNombre", source = "clase.sede.nombre")
     SocioClaseModel convert(SocioClaseEntity entidad);
 
     List<SocioClaseModel> convertInscripciones(List<SocioClaseEntity> lista);

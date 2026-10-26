@@ -100,10 +100,13 @@ public class AuthService {
     private LoginResponse emitirSesion(UsuarioEntity usuario) {
         String token = jwtService.generarToken(usuario);
         sesionService.registrar(usuario, token, jwtService.extraerExpiracion(token));
+        EmpleadoEntity emp = usuario.getEmpleado();
         return LoginResponse.builder()
                 .token(token)
                 .username(usuario.getUsername())
                 .rol(usuario.getRolCodigo())
+                .empleadoId(emp != null ? emp.getId() : null)
+                .nombreCompleto(emp != null ? emp.getNombre() + " " + emp.getApellido() : usuario.getUsername())
                 .build();
     }
 

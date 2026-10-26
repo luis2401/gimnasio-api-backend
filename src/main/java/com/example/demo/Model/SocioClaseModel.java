@@ -15,9 +15,12 @@ public class SocioClaseModel {
 
     private Long id;
     private Long socioId;
+    private String socioDni;
     private String socioNombre;
     private Integer claseId;
     private String claseNombre;
+    private Integer sedeId;
+    private String sedeNombre;
     private LocalDate fechaInscripcion;
     private LocalDate fechaBaja;
     private boolean activo;

@@ -18,6 +18,7 @@ public class SuscripcionModel {
 
     private Integer id;
     private Long socioId;
+    private String socioDni;
     private String socioNombre;
     private Integer planSedeId;
     private Integer sedeId;

@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.util.List;
 
-@CrossOrigin("http://localhost:3000/")
 @RestController
 public class InscripcionController {
 

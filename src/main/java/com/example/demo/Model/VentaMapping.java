@@ -11,6 +11,7 @@ import java.util.List;
 public interface VentaMapping {
 
     @Mapping(target = "socioId", source = "socio.id")
+    @Mapping(target = "socioDni", source = "socio.dni")
     @Mapping(target = "socioNombre", expression = "java(entidad.getSocio().getNombre() + \" \" + (entidad.getSocio().getApellido() == null ? \"\" : entidad.getSocio().getApellido()))")
     @Mapping(target = "planSedeId", source = "planSede.id")
     @Mapping(target = "sedeId", source = "planSede.sede.id")
@@ -20,6 +21,8 @@ public interface VentaMapping {
     List<SuscripcionModel> convertSuscripciones(List<SuscripcionEntity> lista);
 
     @Mapping(target = "suscripcionId", source = "suscripcion.id")
+    @Mapping(target = "nombrePlan", source = "suscripcion.nombrePlanVendido")
+    @Mapping(target = "socioNombre", expression = "java(entidad.getSuscripcion() != null && entidad.getSuscripcion().getSocio() != null ? entidad.getSuscripcion().getSocio().getNombre() + \" \" + (entidad.getSuscripcion().getSocio().getApellido() == null ? \"\" : entidad.getSuscripcion().getSocio().getApellido()) : null)")
     @Mapping(target = "sedeId", source = "sede.id")
     @Mapping(target = "sedeNombre", source = "sede.nombre")
     @Mapping(target = "vendedorId", source = "vendedor.id")

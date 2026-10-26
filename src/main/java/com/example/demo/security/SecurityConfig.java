@@ -70,7 +70,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/clases", "/clases/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
                         .requestMatchers(HttpMethod.PATCH, "/clases", "/clases/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
                         .requestMatchers("/inscripciones", "/inscripciones/**", "/asistencias", "/asistencias/**").authenticated()
-                        .requestMatchers("/asignaciones", "/asignaciones/**", "/dashboard").hasAnyRole("ADMIN", "ADMINISTRADOR")
+                        .requestMatchers(HttpMethod.GET, "/asignaciones", "/dashboard").authenticated()
+                        .requestMatchers("/asignaciones", "/asignaciones/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
                         .requestMatchers("/usuarios", "/usuarios/**").hasAnyRole("ADMIN", "ADMINISTRADOR")
                         .requestMatchers( "/swagger-ui/**",
                                 "/swagger-ui.html",
@@ -84,20 +85,22 @@ public class SecurityConfig {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource(
+            @org.springframework.beans.factory.annotation.Value(
+                    "${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173,https://yanfitnes.vercel.app,https://yanfitness.vercel.app}")
+            List<String> origenesPermitidos) {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(
-                "http://localhost:3000",
-                "https://yanfitness.vercel.app"
-        ));
+        configuration.setAllowedOrigins(origenesPermitidos);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {

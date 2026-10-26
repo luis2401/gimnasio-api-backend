@@ -23,6 +23,8 @@ public class PagoModel {
     private BigDecimal monto;
     private MetodoPago metodo;
     private Integer suscripcionId;
+    private String socioNombre;
+    private String nombrePlan;
     private Integer sedeId;
     private String sedeNombre;
     private Integer vendedorId;
