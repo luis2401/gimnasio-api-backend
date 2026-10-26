@@ -84,12 +84,22 @@ public class SocioService {
     public SocioModel updateSocio(Long id, UpdateSocioRequest request) {
         SocioEntity socio = obtenerSocio(id);
 
-        if (request.getCorreo() != null) {
-            validarUnicidadCorreo(request.getCorreo(), id);
-            socio.setCorreo(request.getCorreo());
+        if (request.getNombre() != null && !request.getNombre().isBlank()) {
+            socio.setNombre(request.getNombre().trim());
         }
-        if (request.getTelefono() != null) {
-            socio.setTelefono(request.getTelefono());
+        if (request.getApellido() != null && !request.getApellido().isBlank()) {
+            socio.setApellido(request.getApellido().trim());
+        }
+        if (request.getCorreo() != null) {
+            String correoLimpio = request.getCorreo().isBlank() ? null : request.getCorreo().trim();
+            validarUnicidadCorreo(correoLimpio, id);
+            socio.setCorreo(correoLimpio);
+        }
+        if (request.getTelefono() != null && !request.getTelefono().isBlank()) {
+            socio.setTelefono(request.getTelefono().trim());
+        }
+        if (request.getActivo() != null) {
+            socio.setActivo(request.getActivo());
         }
         return mapper.convert(socioRepository.saveAndFlush(socio));
     }
@@ -97,7 +107,13 @@ public class SocioService {
     @Transactional
     public void eliminarSocio(Long id) {
         SocioEntity socio = obtenerSocio(id);
-        socioRepository.delete(socio);
+        try {
+            socioRepository.delete(socio);
+            socioRepository.flush();
+        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No se puede eliminar definitivamente al socio porque tiene membresías o inscripciones asociadas. Puedes desactivarlo desde el botón de estado.");
+        }
     }
 
     @Transactional

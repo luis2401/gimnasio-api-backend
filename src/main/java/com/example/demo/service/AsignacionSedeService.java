@@ -56,34 +56,55 @@ public class AsignacionSedeService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Empleado no encontrado con id: " + request.getEmpleadoId()));
         if (!empleado.isActivo()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El empleado está inactivo");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El colaborador seleccionado se encuentra inactivo");
         }
+        String rolCod = empleado.getRol() != null && empleado.getRol().getCodigo() != null
+                ? empleado.getRol().getCodigo().toUpperCase() : "";
+        if ("ADMINISTRADOR".equals(rolCod) || "ADMIN".equals(rolCod) || "SUPERVISOR".equals(rolCod)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Los roles Administrador y Supervisor tienen alcance global en todas las sedes y no se asignan a una sede específica");
+        }
+
         SedeEntity sede = sedeRepository.findById(request.getSedeId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Sede no encontrada con id: " + request.getSedeId()));
         if (!sede.isActiva()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La sede está inactiva");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La sede seleccionada se encuentra inactiva");
         }
 
-        LocalDate desde = request.getFechaDesde() != null ? request.getFechaDesde() : LocalDate.now();
+        LocalDate hoy = LocalDate.now();
+        LocalDate desde = request.getFechaDesde() != null ? request.getFechaDesde() : hoy;
         LocalDate hasta = request.getFechaHasta();
         if (hasta != null && hasta.isBefore(desde)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "La fecha hasta no puede ser anterior a la fecha desde");
+                    "La fecha límite no puede ser anterior a la fecha de inicio");
         }
 
-        if (asignacionRepository.existsByEmpleadoIdAndSedeIdAndFechaDesde(empleado.getId(), sede.getId(), desde)) {
+        // Si ya existe un registro con la misma fechaDesde pero estaba anulado o ya finalizado (fechaHasta <= hoy), lo reactivamos/actualizamos
+        java.util.Optional<AsignacionSedeEntity> mismaFechaOpt = asignacionRepository
+                .findByEmpleadoIdAndSedeIdAndFechaDesde(empleado.getId(), sede.getId(), desde);
+        if (mismaFechaOpt.isPresent()) {
+            AsignacionSedeEntity existente = mismaFechaOpt.get();
+            boolean estabaCerrada = existente.isAnulada()
+                    || (existente.getFechaHasta() != null && !existente.getFechaHasta().isAfter(hoy));
+            if (estabaCerrada) {
+                existente.setAnulada(false);
+                existente.setFechaHasta(hasta);
+                return mapper.convert(asignacionRepository.saveAndFlush(existente));
+            }
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Regla de negocio: ya existe una asignación del empleado a la sede con esa fecha de inicio");
+                    "El colaborador ya tiene una asignación vigente en esa sede con esa fecha de inicio");
         }
 
+        // Ignorar asignaciones que ya fueron finalizadas (fechaHasta <= hoy) al evaluar cruce
         boolean cruce = asignacionRepository
                 .findByEmpleadoIdAndSedeIdAndAnulada(empleado.getId(), sede.getId(), false).stream()
+                .filter(a -> a.getFechaHasta() == null || a.getFechaHasta().isAfter(hoy))
                 .anyMatch(a -> (a.getFechaHasta() == null || !a.getFechaHasta().isBefore(desde))
                         && (hasta == null || !hasta.isBefore(a.getFechaDesde())));
         if (cruce) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Regla de negocio: el empleado ya tiene una asignación vigente en esa sede para ese periodo");
+                    "El colaborador ya cuenta con una asignación vigente activa en esa sede para ese periodo");
         }
 
         return mapper.convert(asignacionRepository.saveAndFlush(AsignacionSedeEntity.builder()
@@ -99,13 +120,13 @@ public class AsignacionSedeService {
     public AsignacionSedeModel finalizar(Integer id, FinalizarAsignacionRequest request) {
         AsignacionSedeEntity asignacion = obtener(id);
         if (asignacion.isAnulada()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "La asignación está anulada");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La asignación ya se encuentra anulada");
         }
+        LocalDate hoy = LocalDate.now();
         LocalDate hasta = request != null && request.getFechaHasta() != null
-                ? request.getFechaHasta() : LocalDate.now();
+                ? request.getFechaHasta() : hoy;
         if (hasta.isBefore(asignacion.getFechaDesde())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "La fecha hasta no puede ser anterior a la fecha desde");
+            hasta = asignacion.getFechaDesde();
         }
         asignacion.setFechaHasta(hasta);
         return mapper.convert(asignacionRepository.saveAndFlush(asignacion));

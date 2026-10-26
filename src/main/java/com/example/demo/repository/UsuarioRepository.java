@@ -17,6 +17,8 @@ public interface UsuarioRepository extends JpaRepository<UsuarioEntity, Long> {
 
     boolean existsByUsername(String username);
 
+    Optional<UsuarioEntity> findByEmpleadoId(Integer empleadoId);
+
     @EntityGraph(attributePaths = {"empleado", "empleado.rol"})
     Page<UsuarioEntity> findByUsernameContainingIgnoreCase(String username, Pageable pageable);
 

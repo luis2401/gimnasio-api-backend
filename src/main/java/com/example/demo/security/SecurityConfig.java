@@ -90,9 +90,22 @@ public class SecurityConfig {
                     "${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173,https://yanfitnes.vercel.app,https://yanfitness.vercel.app}")
             List<String> origenesPermitidos) {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(origenesPermitidos);
+        java.util.List<String> patrones = new java.util.ArrayList<>(origenesPermitidos);
+        for (String extra : List.of(
+                "https://yanfitnes.vercel.app",
+                "https://yanfitness.vercel.app",
+                "https://*.vercel.app",
+                "http://localhost:3000",
+                "http://localhost:5173"
+        )) {
+            if (!patrones.contains(extra)) {
+                patrones.add(extra);
+            }
+        }
+        configuration.setAllowedOriginPatterns(patrones);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 

@@ -69,6 +69,22 @@ public class PlanMembresiaService {
                 asignarOActualizarPrecioSede(plan.getId(), precioReq);
             }
             plan = obtenerPlan(plan.getId());
+        } else {
+            BigDecimal precioDefecto = plan.getDuracionDias() <= 35
+                    ? new BigDecimal("120.00")
+                    : plan.getDuracionDias() <= 100
+                    ? new BigDecimal("320.00")
+                    : new BigDecimal("1000.00");
+            for (SedeEntity sedeActiva : sedeRepository.findByActiva(true)) {
+                planSedeRepository.saveAndFlush(PlanSedeEntity.builder()
+                        .plan(plan)
+                        .sede(sedeActiva)
+                        .precioActual(precioDefecto)
+                        .recargoMultisede(new BigDecimal("20.00"))
+                        .activo(true)
+                        .build());
+            }
+            plan = obtenerPlan(plan.getId());
         }
 
         return mapper.convert(plan);
@@ -127,7 +143,13 @@ public class PlanMembresiaService {
     @Transactional
     public void eliminarPlan(Integer id) {
         PlanMembresiaEntity plan = obtenerPlan(id);
-        planRepository.delete(plan);
+        try {
+            planRepository.delete(plan);
+            planRepository.flush();
+        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No se puede eliminar este plan porque ya tiene tarifas o suscripciones vendidas asociadas. Puedes desactivarlo usando el botón de estado.");
+        }
     }
 
     @Transactional

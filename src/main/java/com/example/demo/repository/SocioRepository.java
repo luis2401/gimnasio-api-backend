@@ -10,6 +10,8 @@ import java.util.List;
 @Repository
 public interface SocioRepository extends JpaRepository<SocioEntity, Long> {
 
+    java.util.Optional<SocioEntity> findByDni(String dni);
+
     boolean existsByDni(String dni);
 
     boolean existsByDniAndIdNot(String dni, Long id);

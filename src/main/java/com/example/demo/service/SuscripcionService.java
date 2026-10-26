@@ -105,7 +105,8 @@ public class SuscripcionService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Socio no encontrado con id: " + request.getSocioId()));
         if (!socio.isActivo()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El socio está inactivo");
+            socio.setActivo(true);
+            socio = socioRepository.save(socio);
         }
 
         PlanSedeEntity planSede = planSedeRepository.findById(request.getPlanSedeId())
@@ -114,13 +115,13 @@ public class SuscripcionService {
         PlanMembresiaEntity plan = planSede.getPlan();
 
         if (!planSede.isActivo() || !plan.isActivo() || !planSede.getSede().isActiva()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El plan o la sede no están disponibles");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El plan o la sede seleccionada no están activos");
         }
 
         LocalDate hoy = LocalDate.now();
         if ((plan.getVigenciaDesde() != null && hoy.isBefore(plan.getVigenciaDesde()))
                 || (plan.getVigenciaHasta() != null && hoy.isAfter(plan.getVigenciaHasta()))) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El plan no está vigente para su venta");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El plan no está vigente para su venta en la fecha actual");
         }
 
         LocalDate inicio = request.getFechaInicio() != null ? request.getFechaInicio() : hoy;
@@ -128,7 +129,7 @@ public class SuscripcionService {
         if (suscripcionRepository.existsBySocioIdAndEstadoAndFechaFinGreaterThanEqual(
                 socio.getId(), EstadoSuscripcion.ACTIVA, inicio)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Regla de negocio: el socio ya tiene una membresía activa en esa fecha");
+                    "El socio ya cuenta con una membresía activa vigente en esa fecha. Puedes elegir una fecha posterior al vencimiento actual o emitir un Pase Diario.");
         }
 
         boolean multisede = Boolean.TRUE.equals(request.getAccesoMultisede());
@@ -136,13 +137,13 @@ public class SuscripcionService {
         BigDecimal precioLista = planSede.getPrecioActual().add(recargo);
         BigDecimal precioVendido = request.getPrecioVendido() != null ? request.getPrecioVendido() : precioLista;
 
-        if (precioVendido.compareTo(precioLista) != 0
-                && (request.getObservacionPrecio() == null || request.getObservacionPrecio().isBlank())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Debe indicar una observación cuando el precio vendido difiere del precio de lista");
-        }
         if (precioVendido.signum() <= 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El precio vendido debe ser mayor a 0");
+        }
+
+        String observacionEfectiva = blankToNull(request.getObservacionPrecio());
+        if (precioVendido.compareTo(precioLista) != 0 && observacionEfectiva == null) {
+            observacionEfectiva = "Tarifa ajustada en caja (Precio lista: S/ " + precioLista + ")";
         }
 
         validarNumeroOperacion(request.getNumeroOperacion());
@@ -158,7 +159,7 @@ public class SuscripcionService {
                 .fechaInicio(inicio)
                 .fechaFin(inicio.plusDays(plan.getDuracionDias()))
                 .estado(EstadoSuscripcion.ACTIVA)
-                .observacionPrecio(request.getObservacionPrecio())
+                .observacionPrecio(observacionEfectiva)
                 .accesoMultisede(multisede)
                 .recargoMultisede(recargo)
                 .build());
@@ -172,7 +173,7 @@ public class SuscripcionService {
                 .numeroOperacion(blankToNull(request.getNumeroOperacion()))
                 .estado(EstadoPago.PAGADO)
                 .tipoVenta(TipoVenta.MEMBRESIA)
-                .observacionPrecio(request.getObservacionPrecio())
+                .observacionPrecio(observacionEfectiva)
                 .build());
 
         return VentaMembresiaModel.builder()

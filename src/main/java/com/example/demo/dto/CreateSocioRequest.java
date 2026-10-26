@@ -21,12 +21,14 @@ public class CreateSocioRequest {
     @NotBlank(message = "El nombre es obligatorio")
     private String nombre;
 
+    @NotBlank(message = "El apellido es obligatorio")
     private String apellido;
 
-    @Pattern(regexp = "\\d{9}", message = "El teléfono debe tener 9 dígitos")
+    @NotBlank(message = "El teléfono es obligatorio")
+    @Pattern(regexp = "\\d{9}", message = "El teléfono debe tener exactamente 9 dígitos numéricos")
     private String telefono;
 
-    @jakarta.validation.constraints.Email(message = "El correo no es válido")
+    @jakarta.validation.constraints.Email(message = "El correo electrónico no tiene un formato válido")
     private String correo;
 
     @NotNull(message = "El campo activo es obligatorio")

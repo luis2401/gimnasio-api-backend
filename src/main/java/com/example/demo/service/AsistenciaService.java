@@ -39,20 +39,12 @@ public class AsistenciaService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Inscripción no encontrada con id: " + request.getSocioClaseId()));
 
-        LocalDate fecha = request.getFecha() != null ? request.getFecha() : LocalDate.now();
+        if (!inscripcion.isActivo()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La inscripción del socio en esta clase se encuentra dada de baja");
+        }
 
-        if (fecha.isAfter(LocalDate.now())) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se puede registrar asistencia en una fecha futura");
-        }
-        if (fecha.isBefore(inscripcion.getFechaInscripcion())
-                || (inscripcion.getFechaBaja() != null && fecha.isAfter(inscripcion.getFechaBaja()))) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "La fecha está fuera del periodo de inscripción del socio");
-        }
-        if (fecha.getDayOfWeek().getValue() != inscripcion.getClase().getDiaSemana()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "La fecha no corresponde al día de la semana en que se dicta la clase");
-        }
+        LocalDate fecha = request.getFecha() != null ? request.getFecha() : LocalDate.now();
 
         AsistenciaClaseEntity asistencia = asistenciaRepository
                 .findBySocioClaseIdAndFecha(inscripcion.getId(), fecha)

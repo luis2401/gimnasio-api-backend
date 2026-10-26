@@ -22,6 +22,12 @@ public class SedeService {
     private SedeRepository sedeRepository;
 
     @Autowired
+    private com.example.demo.repository.PlanMembresiaRepository planMembresiaRepository;
+
+    @Autowired
+    private com.example.demo.repository.PlanSedeRepository planSedeRepository;
+
+    @Autowired
     private SedeMapping sedeMapping;
 
     @Transactional(readOnly = true)
@@ -48,7 +54,26 @@ public class SedeService {
         if (request.getActiva() != null) {
             sede.setActiva(request.getActiva());
         }
-        return sedeMapping.convert(sedeRepository.saveAndFlush(sede));
+        sede = sedeRepository.saveAndFlush(sede);
+
+        for (com.example.demo.entity.PlanMembresiaEntity plan : planMembresiaRepository.findByActivo(true)) {
+            if (planSedeRepository.findByPlanIdAndSedeId(plan.getId(), sede.getId()).isEmpty()) {
+                java.math.BigDecimal precioDefecto = plan.getDuracionDias() <= 35
+                        ? new java.math.BigDecimal("120.00")
+                        : plan.getDuracionDias() <= 100
+                        ? new java.math.BigDecimal("320.00")
+                        : new java.math.BigDecimal("1100.00");
+                planSedeRepository.saveAndFlush(com.example.demo.entity.PlanSedeEntity.builder()
+                        .plan(plan)
+                        .sede(sede)
+                        .precioActual(precioDefecto)
+                        .recargoMultisede(new java.math.BigDecimal("20.00"))
+                        .activo(true)
+                        .build());
+            }
+        }
+
+        return sedeMapping.convert(sede);
     }
 
     @Transactional
@@ -91,7 +116,13 @@ public class SedeService {
     @Transactional
     public void eliminarSede(Integer id) {
         SedeEntity sede = obtenerSede(id);
-        sedeRepository.delete(sede);
+        try {
+            sedeRepository.delete(sede);
+            sedeRepository.flush();
+        } catch (org.springframework.dao.DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No se puede eliminar esta sede porque cuenta con planes, pagos, clases o asignaciones vinculadas. Puedes desactivarla usando el botón de estado.");
+        }
     }
 
     private SedeEntity obtenerSede(Integer id) {

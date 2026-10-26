@@ -13,9 +13,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class UpdateSocioRequest {
 
-    @Email(message = "El correo no es válido")
+    private String nombre;
+
+    private String apellido;
+
+    @Email(message = "El correo electrónico no tiene un formato válido")
     private String correo;
 
-    @Pattern(regexp = "\\d{9}", message = "El teléfono debe tener 9 dígitos")
+    @Pattern(regexp = "\\d{9}", message = "El teléfono debe tener exactamente 9 dígitos numéricos")
     private String telefono;
+
+    private Boolean activo;
 }

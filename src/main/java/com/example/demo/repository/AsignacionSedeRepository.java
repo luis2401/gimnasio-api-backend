@@ -16,4 +16,6 @@ public interface AsignacionSedeRepository extends JpaRepository<AsignacionSedeEn
     List<AsignacionSedeEntity> findByEmpleadoIdAndSedeIdAndAnulada(Integer empleadoId, Integer sedeId, boolean anulada);
 
     boolean existsByEmpleadoIdAndSedeIdAndFechaDesde(Integer empleadoId, Integer sedeId, java.time.LocalDate fechaDesde);
+
+    java.util.Optional<AsignacionSedeEntity> findByEmpleadoIdAndSedeIdAndFechaDesde(Integer empleadoId, Integer sedeId, java.time.LocalDate fechaDesde);
 }
