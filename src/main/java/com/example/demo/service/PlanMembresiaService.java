@@ -179,14 +179,38 @@ public class PlanMembresiaService {
         return mapper.convertPrecios(planSedeRepository.findByPlanId(planId));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<PlanSedeModel> obtenerPlanesPorSede(Integer sedeId, Boolean soloActivos) {
-        sedeRepository.findById(sedeId)
+        SedeEntity sede = sedeRepository.findById(sedeId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sede no encontrada con id: " + sedeId));
 
         List<PlanSedeEntity> lista = Boolean.TRUE.equals(soloActivos)
                 ? planSedeRepository.findBySedeIdAndActivo(sedeId, true)
                 : planSedeRepository.findBySedeId(sedeId);
+
+        if (lista.isEmpty()) {
+            List<PlanMembresiaEntity> planesActivos = planRepository.findByActivo(true);
+            List<PlanSedeEntity> autoPlanes = new ArrayList<>();
+            for (PlanMembresiaEntity p : planesActivos) {
+                BigDecimal precio = planSedeRepository.findByPlanId(p.getId()).stream()
+                        .map(PlanSedeEntity::getPrecioActual)
+                        .filter(java.util.Objects::nonNull)
+                        .findFirst()
+                        .orElse(BigDecimal.valueOf(120.00));
+                PlanSedeEntity nuevo = PlanSedeEntity.builder()
+                        .plan(p)
+                        .sede(sede)
+                        .precioActual(precio)
+                        .recargoMultisede(BigDecimal.ZERO)
+                        .activo(true)
+                        .build();
+                autoPlanes.add(planSedeRepository.save(nuevo));
+            }
+            if (!autoPlanes.isEmpty()) {
+                planSedeRepository.flush();
+                return mapper.convertPrecios(autoPlanes);
+            }
+        }
         return mapper.convertPrecios(lista);
     }
 
