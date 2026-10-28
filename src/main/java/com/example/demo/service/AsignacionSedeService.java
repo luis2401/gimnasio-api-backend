@@ -80,31 +80,27 @@ public class AsignacionSedeService {
                     "La fecha límite no puede ser anterior a la fecha de inicio");
         }
 
-        // Si ya existe un registro con la misma fechaDesde pero estaba anulado o ya finalizado (fechaHasta <= hoy), lo reactivamos/actualizamos
+        // Si ya existe un registro con la misma fechaDesde, lo reactivamos/actualizamos sin lanzar conflicto
         java.util.Optional<AsignacionSedeEntity> mismaFechaOpt = asignacionRepository
                 .findByEmpleadoIdAndSedeIdAndFechaDesde(empleado.getId(), sede.getId(), desde);
         if (mismaFechaOpt.isPresent()) {
             AsignacionSedeEntity existente = mismaFechaOpt.get();
-            boolean estabaCerrada = existente.isAnulada()
-                    || (existente.getFechaHasta() != null && !existente.getFechaHasta().isAfter(hoy));
-            if (estabaCerrada) {
-                existente.setAnulada(false);
-                existente.setFechaHasta(hasta);
-                return mapper.convert(asignacionRepository.saveAndFlush(existente));
-            }
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "El colaborador ya tiene una asignación vigente en esa sede con esa fecha de inicio");
+            existente.setAnulada(false);
+            existente.setFechaHasta(hasta);
+            return mapper.convert(asignacionRepository.saveAndFlush(existente));
         }
 
-        // Ignorar asignaciones que ya fueron finalizadas (fechaHasta <= hoy) al evaluar cruce
-        boolean cruce = asignacionRepository
+        // Si ya existe una asignación activa vigente en esa sede con otra fechaDesde que se cruza, actualizamos su vigencia
+        java.util.Optional<AsignacionSedeEntity> cruceOpt = asignacionRepository
                 .findByEmpleadoIdAndSedeIdAndAnulada(empleado.getId(), sede.getId(), false).stream()
                 .filter(a -> a.getFechaHasta() == null || a.getFechaHasta().isAfter(hoy))
-                .anyMatch(a -> (a.getFechaHasta() == null || !a.getFechaHasta().isBefore(desde))
-                        && (hasta == null || !hasta.isBefore(a.getFechaDesde())));
-        if (cruce) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "El colaborador ya cuenta con una asignación vigente activa en esa sede para ese periodo");
+                .filter(a -> (a.getFechaHasta() == null || !a.getFechaHasta().isBefore(desde))
+                        && (hasta == null || !hasta.isBefore(a.getFechaDesde())))
+                .findFirst();
+        if (cruceOpt.isPresent()) {
+            AsignacionSedeEntity existente = cruceOpt.get();
+            existente.setFechaHasta(hasta);
+            return mapper.convert(asignacionRepository.saveAndFlush(existente));
         }
 
         return mapper.convert(asignacionRepository.saveAndFlush(AsignacionSedeEntity.builder()

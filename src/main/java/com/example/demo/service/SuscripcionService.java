@@ -92,8 +92,7 @@ public class SuscripcionService {
                 .findFirstBySocioIdAndEstadoAndFechaFinGreaterThanEqualOrderByFechaFinDesc(
                         socioId, EstadoSuscripcion.ACTIVA, LocalDate.now())
                 .map(mapper::convert)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "El socio no tiene una membresía vigente"));
+                .orElse(null);
     }
 
     /** Vende una membresía: crea la suscripción (con fotografía del plan) y registra su pago. */
@@ -126,10 +125,21 @@ public class SuscripcionService {
 
         LocalDate inicio = request.getFechaInicio() != null ? request.getFechaInicio() : hoy;
         suscripcionRepository.marcarVencidas(hoy);
-        if (suscripcionRepository.existsBySocioIdAndEstadoAndFechaFinGreaterThanEqual(
-                socio.getId(), EstadoSuscripcion.ACTIVA, inicio)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "El socio ya cuenta con una membresía activa vigente en esa fecha. Puedes elegir una fecha posterior al vencimiento actual o emitir un Pase Diario.");
+
+        // Si el socio ya tiene una membresía activa vigente, tomamos el último día de su suscripción actual
+        // y a partir de esa fecha sumamos los días del nuevo plan contratado.
+        SuscripcionEntity vigenteActual = suscripcionRepository
+                .findFirstBySocioIdAndEstadoAndFechaFinGreaterThanEqualOrderByFechaFinDesc(
+                        socio.getId(), EstadoSuscripcion.ACTIVA, hoy)
+                .orElse(null);
+
+        boolean esExtensionContinua = false;
+        if (vigenteActual != null) {
+            LocalDate ultimoDiaSuscripcion = vigenteActual.getFechaFin();
+            if (!inicio.isAfter(ultimoDiaSuscripcion)) {
+                inicio = ultimoDiaSuscripcion;
+                esExtensionContinua = true;
+            }
         }
 
         boolean multisede = Boolean.TRUE.equals(request.getAccesoMultisede());
@@ -144,6 +154,8 @@ public class SuscripcionService {
         String observacionEfectiva = blankToNull(request.getObservacionPrecio());
         if (precioVendido.compareTo(precioLista) != 0 && observacionEfectiva == null) {
             observacionEfectiva = "Tarifa ajustada en caja (Precio lista: S/ " + precioLista + ")";
+        } else if (esExtensionContinua && observacionEfectiva == null) {
+            observacionEfectiva = "Renovación acumulada desde el último día de su membresía vigente (" + inicio + ")";
         }
 
         validarNumeroOperacion(request.getNumeroOperacion());

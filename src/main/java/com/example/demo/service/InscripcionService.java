@@ -73,15 +73,18 @@ public class InscripcionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El socio está inactivo");
         }
 
-        if (socioClaseRepository.existsBySocioIdAndClaseIdAndActivo(socio.getId(), clase.getId(), true)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Regla de negocio: el socio ya está inscrito en esta clase");
+        java.util.Optional<SocioClaseEntity> yaInscrito = socioClaseRepository
+                .findBySocioIdAndActivo(socio.getId(), true).stream()
+                .filter(ic -> ic.getClase().getId().equals(clase.getId()))
+                .findFirst();
+        if (yaInscrito.isPresent()) {
+            return mapper.convert(yaInscrito.get());
         }
 
         validarMembresia(socio.getId(), clase);
 
         if (socioClaseRepository.countByClaseIdAndActivo(clase.getId(), true) >= clase.getCupoMax()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "La clase no tiene cupos disponibles");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La clase seleccionada ya alcanzó su cupo máximo de participantes");
         }
 
         SocioClaseEntity inscripcion = socioClaseRepository.saveAndFlush(SocioClaseEntity.builder()
@@ -99,7 +102,7 @@ public class InscripcionService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "Inscripción no encontrada con id: " + id));
         if (!inscripcion.isActivo()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "La inscripción ya fue dada de baja");
+            return mapper.convert(inscripcion);
         }
         inscripcion.setActivo(false);
         inscripcion.setFechaBaja(LocalDate.now());
@@ -110,16 +113,20 @@ public class InscripcionService {
     private void validarMembresia(Long socioId, ClaseEntity clase) {
         LocalDate hoy = LocalDate.now();
         suscripcionRepository.marcarVencidas(hoy);
-        SuscripcionEntity suscripcion = suscripcionRepository
-                .findFirstBySocioIdAndEstadoAndFechaFinGreaterThanEqualOrderByFechaFinDesc(
-                        socioId, EstadoSuscripcion.ACTIVA, hoy)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "El socio no tiene una membresía vigente"));
+        List<SuscripcionEntity> activas = suscripcionRepository.findBySocioIdOrderByFechaInicioDesc(socioId).stream()
+                .filter(s -> s.getEstado() == EstadoSuscripcion.ACTIVA && !s.getFechaFin().isBefore(hoy))
+                .toList();
 
-        boolean mismaSede = suscripcion.getPlanSede().getSede().getId().equals(clase.getSede().getId());
-        if (!mismaSede && !suscripcion.isAccesoMultisede()) {
+        if (activas.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "La membresía del socio no incluye acceso a la sede de esta clase");
+                    "El socio no cuenta con una membresía vigente activa");
+        }
+
+        boolean cubreSede = activas.stream().anyMatch(s ->
+                s.isAccesoMultisede() || s.getPlanSede().getSede().getId().equals(clase.getSede().getId()));
+        if (!cubreSede) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La membresía del socio no incluye acceso a la sede de esta clase (requiere plan en la misma sede o acceso Multisede)");
         }
     }
 }
