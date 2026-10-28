@@ -74,7 +74,10 @@ public class PagoService {
 
         String numeroOperacion = request.getNumeroOperacion() == null || request.getNumeroOperacion().isBlank()
                 ? null : request.getNumeroOperacion().trim();
-        if (numeroOperacion != null && pagoRepository.existsByNumeroOperacion(numeroOperacion)) {
+        if (numeroOperacion == null) {
+            numeroOperacion = SuscripcionService.generarNopAutomatico(sede, vendedor, request.getMetodoPago());
+        }
+        if (pagoRepository.existsByNumeroOperacion(numeroOperacion)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Regla de negocio: ya existe un pago con el número de operación " + numeroOperacion);
         }

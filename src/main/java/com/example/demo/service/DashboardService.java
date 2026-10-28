@@ -23,6 +23,9 @@ public class DashboardService {
     private SuscripcionRepository suscripcionRepository;
 
     @Autowired
+    private SuscripcionService suscripcionService;
+
+    @Autowired
     private ClaseRepository claseRepository;
 
     @Autowired
@@ -43,9 +46,7 @@ public class DashboardService {
                 .sociosActivos(socioRepository.countByActivo(true))
                 .sociosInactivos(socioRepository.countByActivo(false))
                 .suscripcionesActivas(suscripcionRepository.countByEstado(EstadoSuscripcion.ACTIVA))
-                .suscripcionesPorVencer7Dias(suscripcionRepository
-                        .findByEstadoAndFechaFinBetweenOrderByFechaFinAsc(EstadoSuscripcion.ACTIVA, hoy, hoy.plusDays(7))
-                        .size())
+                .suscripcionesPorVencer7Dias(suscripcionService.buscarPorVencer(7).size())
                 .ingresosHoy(pagoService.generarReporte(hoy, hoy, null).getTotal())
                 .ingresosMes(pagoService.generarReporte(hoy.withDayOfMonth(1), hoy, null).getTotal())
                 .clasesActivas(claseRepository.countByActivo(true))

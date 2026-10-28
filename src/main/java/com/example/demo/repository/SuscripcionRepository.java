@@ -29,6 +29,8 @@ public interface SuscripcionRepository extends JpaRepository<SuscripcionEntity, 
 
     boolean existsBySocioIdAndEstadoAndFechaFinGreaterThanEqual(Long socioId, EstadoSuscripcion estado, LocalDate fecha);
 
+    boolean existsBySocioIdAndEstadoAndFechaFinGreaterThan(Long socioId, EstadoSuscripcion estado, LocalDate fecha);
+
     Optional<SuscripcionEntity> findFirstBySocioIdAndEstadoAndFechaFinGreaterThanEqualOrderByFechaFinDesc(
             Long socioId, EstadoSuscripcion estado, LocalDate fecha);
 

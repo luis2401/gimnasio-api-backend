@@ -81,8 +81,18 @@ public class SuscripcionService {
         }
         LocalDate hoy = LocalDate.now();
         suscripcionRepository.marcarVencidas(hoy);
-        return mapper.convertSuscripciones(suscripcionRepository
-                .findByEstadoAndFechaFinBetweenOrderByFechaFinAsc(EstadoSuscripcion.ACTIVA, hoy, hoy.plusDays(dias)));
+
+        List<SuscripcionEntity> candidatos = suscripcionRepository
+                .findByEstadoAndFechaFinBetweenOrderByFechaFinAsc(EstadoSuscripcion.ACTIVA, hoy, hoy.plusDays(dias));
+
+        // Filtrar suscripciones: si el socio ya tiene OTRA suscripción activa con fechaFin posterior a esta,
+        // no se considera por vencer ya que cuenta con extensión continua / acumulada garantizada.
+        List<SuscripcionEntity> realmentePorVencer = candidatos.stream()
+                .filter(s -> !suscripcionRepository.existsBySocioIdAndEstadoAndFechaFinGreaterThan(
+                        s.getSocio().getId(), EstadoSuscripcion.ACTIVA, s.getFechaFin()))
+                .toList();
+
+        return mapper.convertSuscripciones(realmentePorVencer);
     }
 
     @Transactional
@@ -158,7 +168,11 @@ public class SuscripcionService {
             observacionEfectiva = "Renovación acumulada desde el último día de su membresía vigente (" + inicio + ")";
         }
 
-        validarNumeroOperacion(request.getNumeroOperacion());
+        String nopEfectivo = blankToNull(request.getNumeroOperacion());
+        if (nopEfectivo == null) {
+            nopEfectivo = generarNopAutomatico(planSede.getSede(), vendedor, request.getMetodoPago());
+        }
+        validarNumeroOperacion(nopEfectivo);
 
         SuscripcionEntity suscripcion = suscripcionRepository.save(SuscripcionEntity.builder()
                 .socio(socio)
@@ -182,7 +196,7 @@ public class SuscripcionService {
                 .suscripcion(suscripcion)
                 .sede(planSede.getSede())
                 .vendedor(vendedor)
-                .numeroOperacion(blankToNull(request.getNumeroOperacion()))
+                .numeroOperacion(nopEfectivo)
                 .estado(EstadoPago.PAGADO)
                 .tipoVenta(TipoVenta.MEMBRESIA)
                 .observacionPrecio(observacionEfectiva)
@@ -236,6 +250,39 @@ public class SuscripcionService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Regla de negocio: ya existe un pago con el número de operación " + numeroOperacion);
         }
+    }
+
+    public static String generarNopAutomatico(com.example.demo.entity.SedeEntity sede, com.example.demo.entity.EmpleadoEntity vendedor, com.example.demo.entity.MetodoPago metodo) {
+        String sedeCode = "SC";
+        if (sede != null && sede.getNombre() != null) {
+            String[] words = sede.getNombre().trim().split("\\s+");
+            if (words.length >= 2) {
+                sedeCode = ("" + words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+            } else if (words.length == 1 && words[0].length() >= 2) {
+                sedeCode = words[0].substring(0, 2).toUpperCase();
+            }
+        }
+
+        String vendCode = "AD";
+        if (vendedor != null) {
+            String nom = vendedor.getNombre() != null && !vendedor.getNombre().isBlank() ? "" + vendedor.getNombre().trim().charAt(0) : "A";
+            String ape = vendedor.getApellido() != null && !vendedor.getApellido().isBlank() ? "" + vendedor.getApellido().trim().charAt(0) : "D";
+            vendCode = (nom + ape).toUpperCase();
+        }
+
+        String metCode = "E";
+        if (metodo != null) {
+            switch (metodo) {
+                case YAPE -> metCode = "Y";
+                case PLIN -> metCode = "P";
+                case TARJETA -> metCode = "T";
+                case TRANSFERENCIA -> metCode = "TR";
+                case EFECTIVO -> metCode = "E";
+            }
+        }
+
+        int randomNum = 100000 + (int)(Math.random() * 900000);
+        return sedeCode + "-" + vendCode + metCode + "-" + randomNum;
     }
 
     private String blankToNull(String valor) {
