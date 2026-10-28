@@ -20,7 +20,24 @@ public interface PagoRepository extends JpaRepository<PagoEntity, Integer> {
 
     List<PagoEntity> findByFechaPagoBetweenAndEstado(Instant desde, Instant hasta, EstadoPago estado);
 
-    List<PagoEntity> findBySedeIdAndFechaPagoBetweenAndEstado(Integer sedeId, Instant desde, Instant hasta, EstadoPago estado);
+    List<PagoEntity> findBySedeIdAndFechaPagoBetweenAndEstado(
+            Integer sedeId, Instant desde, Instant hasta, EstadoPago estado);
+
+    List<PagoEntity> findByVendedorIdOrderByFechaPagoDesc(Integer vendedorId);
+
+    List<PagoEntity> findByVendedorIdAndSedeIdOrderByFechaPagoDesc(Integer vendedorId, Integer sedeId);
+
+    org.springframework.data.domain.Page<PagoEntity> findByVendedorId(
+            Integer vendedorId, org.springframework.data.domain.Pageable pageable);
+
+    org.springframework.data.domain.Page<PagoEntity> findByVendedorIdAndSedeId(
+            Integer vendedorId, Integer sedeId, org.springframework.data.domain.Pageable pageable);
+
+    List<PagoEntity> findByVendedorIdAndFechaPagoBetweenAndEstado(
+            Integer vendedorId, Instant desde, Instant hasta, EstadoPago estado);
+
+    List<PagoEntity> findByVendedorIdAndSedeIdAndFechaPagoBetweenAndEstado(
+            Integer vendedorId, Integer sedeId, Instant desde, Instant hasta, EstadoPago estado);
 
     boolean existsByNumeroOperacion(String numeroOperacion);
 }

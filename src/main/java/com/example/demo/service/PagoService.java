@@ -38,11 +38,39 @@ public class PagoService {
     @Autowired
     private VentaMapping mapper;
 
+    private boolean esRolGlobal(EmpleadoEntity empleado) {
+        if (empleado == null || empleado.getRol() == null) return false;
+        String cod = empleado.getRol().getCodigo();
+        if (cod == null) cod = empleado.getRol().getNombre();
+        if (cod == null) return false;
+        String upper = cod.toUpperCase().trim();
+        return "ADMINISTRADOR".equals(upper) || "ADMIN".equals(upper) || "SUPERVISOR".equals(upper);
+    }
+
+    private EmpleadoEntity obtenerEmpleadoActualOpcional() {
+        try {
+            return EmpleadoActual.obtener();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<PagoModel> buscarPagos(Integer sedeId) {
-        List<PagoEntity> lista = sedeId != null
-                ? pagoRepository.findBySedeIdOrderByFechaPagoDesc(sedeId)
-                : pagoRepository.findAll();
+        EmpleadoEntity emp = obtenerEmpleadoActualOpcional();
+        boolean global = emp == null || esRolGlobal(emp);
+
+        List<PagoEntity> lista;
+        if (global) {
+            lista = sedeId != null
+                    ? pagoRepository.findBySedeIdOrderByFechaPagoDesc(sedeId)
+                    : pagoRepository.findAll(org.springframework.data.domain.Sort.by("fechaPago").descending());
+        } else {
+            // Vendedor estándar: solo ve sus propias ventas (incluso si vendió en otra sede por rotación)
+            lista = sedeId != null
+                    ? pagoRepository.findByVendedorIdAndSedeIdOrderByFechaPagoDesc(emp.getId(), sedeId)
+                    : pagoRepository.findByVendedorIdOrderByFechaPagoDesc(emp.getId());
+        }
         return mapper.convertPagos(lista);
     }
 
@@ -50,15 +78,32 @@ public class PagoService {
     public com.example.demo.Model.PaginaModel<PagoModel> buscarPagina(Integer sedeId, int page, int size) {
         org.springframework.data.domain.Pageable pageable = Paginacion.de(page, size,
                 org.springframework.data.domain.Sort.by("fechaPago").descending());
-        org.springframework.data.domain.Page<PagoEntity> pagina = sedeId != null
-                ? pagoRepository.findBySedeId(sedeId, pageable)
-                : pagoRepository.findAll(pageable);
+        EmpleadoEntity emp = obtenerEmpleadoActualOpcional();
+        boolean global = emp == null || esRolGlobal(emp);
+
+        org.springframework.data.domain.Page<PagoEntity> pagina;
+        if (global) {
+            pagina = sedeId != null
+                    ? pagoRepository.findBySedeId(sedeId, pageable)
+                    : pagoRepository.findAll(pageable);
+        } else {
+            pagina = sedeId != null
+                    ? pagoRepository.findByVendedorIdAndSedeId(emp.getId(), sedeId, pageable)
+                    : pagoRepository.findByVendedorId(emp.getId(), pageable);
+        }
         return com.example.demo.Model.PaginaModel.from(pagina.map(e -> mapper.convert(e)));
     }
 
     @Transactional(readOnly = true)
     public PagoModel buscarPorId(Integer id) {
-        return mapper.convert(obtener(id));
+        PagoEntity pago = obtener(id);
+        EmpleadoEntity emp = obtenerEmpleadoActualOpcional();
+        if (emp != null && !esRolGlobal(emp)) {
+            if (pago.getVendedor() == null || !pago.getVendedor().getId().equals(emp.getId())) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes permiso para ver comprobantes de otros vendedores");
+            }
+        }
+        return mapper.convert(pago);
     }
 
     @Transactional
