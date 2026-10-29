@@ -13,6 +13,7 @@ public interface VentaMapping {
     @Mapping(target = "socioId", source = "socio.id")
     @Mapping(target = "socioDni", source = "socio.dni")
     @Mapping(target = "socioNombre", expression = "java(entidad.getSocio().getNombre() + \" \" + (entidad.getSocio().getApellido() == null ? \"\" : entidad.getSocio().getApellido()))")
+    @Mapping(target = "socioTelefono", source = "socio.telefono")
     @Mapping(target = "planSedeId", source = "planSede.id")
     @Mapping(target = "sedeId", source = "planSede.sede.id")
     @Mapping(target = "sedeNombre", source = "planSede.sede.nombre")
