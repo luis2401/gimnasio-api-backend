@@ -39,6 +39,43 @@ public class SuscripcionService {
     @Autowired
     private VentaMapping mapper;
 
+    /** Administradores y supervisores ven todas las ventas; el resto solo las que vendió. */
+    private boolean esRolGlobal(EmpleadoEntity empleado) {
+        if (empleado == null || empleado.getRol() == null) return false;
+        String cod = empleado.getRol().getCodigo();
+        if (cod == null) cod = empleado.getRol().getNombre();
+        if (cod == null) return false;
+        String upper = cod.toUpperCase().trim();
+        return "ADMINISTRADOR".equals(upper) || "ADMIN".equals(upper) || "SUPERVISOR".equals(upper);
+    }
+
+    private EmpleadoEntity empleadoActualOpcional() {
+        try {
+            return EmpleadoActual.obtener();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /**
+     * Ids de las suscripciones vendidas por el empleado en sesión, o null si puede ver todas.
+     * La autoría de la venta se toma del pago de membresía asociado (pago.vendedor).
+     */
+    private java.util.Set<Integer> idsVendidasPorActual() {
+        EmpleadoEntity emp = empleadoActualOpcional();
+        if (emp == null || esRolGlobal(emp)) return null;
+        return pagoRepository.findByVendedorIdOrderByFechaPagoDesc(emp.getId()).stream()
+                .filter(p -> p.getSuscripcion() != null)
+                .map(p -> p.getSuscripcion().getId())
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    private List<SuscripcionEntity> filtrarPorVendedor(List<SuscripcionEntity> lista) {
+        java.util.Set<Integer> ids = idsVendidasPorActual();
+        if (ids == null) return lista;
+        return lista.stream().filter(s -> ids.contains(s.getId())).toList();
+    }
+
     @Transactional
     public List<SuscripcionModel> buscarSuscripciones(Long socioId, EstadoSuscripcion estado) {
         suscripcionRepository.marcarVencidas(LocalDate.now());
@@ -54,6 +91,10 @@ public class SuscripcionService {
         } else {
             lista = suscripcionRepository.findAll();
         }
+        // Las consultas por socio (usadas para calcular el encadenamiento al renovar) no se filtran.
+        if (socioId == null) {
+            lista = filtrarPorVendedor(lista);
+        }
         return mapper.convertSuscripciones(lista);
     }
 
@@ -62,6 +103,18 @@ public class SuscripcionService {
         suscripcionRepository.marcarVencidas(LocalDate.now());
         org.springframework.data.domain.Pageable pageable = Paginacion.de(page, size,
                 org.springframework.data.domain.Sort.by("id").descending());
+        java.util.Set<Integer> ids = idsVendidasPorActual();
+        if (ids != null) {
+            // Vendedor estándar: paginamos en memoria solo sobre sus propias ventas
+            List<SuscripcionEntity> propias = filtrarPorVendedor(estado != null
+                    ? suscripcionRepository.findByEstado(estado)
+                    : suscripcionRepository.findAll(org.springframework.data.domain.Sort.by("id").descending()));
+            int desde = (int) Math.min(pageable.getOffset(), propias.size());
+            int hasta = Math.min(desde + pageable.getPageSize(), propias.size());
+            org.springframework.data.domain.Page<SuscripcionEntity> propiasPagina =
+                    new org.springframework.data.domain.PageImpl<>(propias.subList(desde, hasta), pageable, propias.size());
+            return com.example.demo.Model.PaginaModel.from(propiasPagina.map(e -> mapper.convert(e)));
+        }
         org.springframework.data.domain.Page<SuscripcionEntity> pagina = estado != null
                 ? suscripcionRepository.findByEstado(estado, pageable)
                 : suscripcionRepository.findAll(pageable);
@@ -71,6 +124,11 @@ public class SuscripcionService {
     @Transactional
     public SuscripcionModel buscarPorId(Integer id) {
         suscripcionRepository.marcarVencidas(LocalDate.now());
+        java.util.Set<Integer> ids = idsVendidasPorActual();
+        if (ids != null && !ids.contains(id)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo puedes consultar las membresías que tú vendiste");
+        }
         return mapper.convert(obtener(id));
     }
 
@@ -92,7 +150,7 @@ public class SuscripcionService {
                         s.getSocio().getId(), EstadoSuscripcion.ACTIVA, s.getFechaFin()))
                 .toList();
 
-        return mapper.convertSuscripciones(realmentePorVencer);
+        return mapper.convertSuscripciones(filtrarPorVendedor(realmentePorVencer));
     }
 
     @Transactional
